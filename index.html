@@ -1083,7 +1083,7 @@ function updateTouchStick(event) {
   const scale = length > radius ? radius / length : 1;
   const x = dx * scale / radius;
   const y = dy * scale / radius;
-  state.touch.steer = Math.abs(x) < 0.12 ? 0 : x;
+  state.touch.steer = Math.abs(x) < 0.12 ? 0 : -x;
   state.touch.throttle = Math.max(0, Math.min(1, -y));
   state.touch.brake = Math.max(0, Math.min(1, y));
   steerStick.style.left = `${50 + x * 36}%`;
