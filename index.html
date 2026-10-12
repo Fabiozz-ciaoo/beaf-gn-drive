@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101912">
+  <title>STUNTWORKS — Open Arena</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      font-synthesis: none;
+      --white: #f2f3ed;
+      --muted: #9da99f;
+      --lime: #c5fa55;
+      --orange: #ff8b42;
+      --panel: rgba(14, 20, 17, .77);
+      --edge: rgba(236, 244, 231, .13);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+
+    body {
+      color: var(--white);
+      background: #94bac2;
+      -webkit-font-smoothing: antialiased;
+      user-select: none;
+    }
+
+    canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+    .screen-wash {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(180deg, rgba(10, 20, 18, .29), transparent 22%, transparent 66%, rgba(8, 13, 11, .45)),
+        radial-gradient(ellipse at 50% 48%, transparent 52%, rgba(4, 10, 8, .17));
+    }
+
+    .topbar {
+      position: fixed;
+      z-index: 2;
+      top: 22px;
+      left: 26px;
+      right: 26px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+
+    .brand { display: flex; align-items: center; gap: 11px; }
+    .brand-mark {
+      width: 33px;
+      height: 33px;
+      display: grid;
+      place-items: center;
+      color: #101611;
+      background: var(--lime);
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: 950;
+      box-shadow: 0 3px 20px rgba(197, 250, 85, .25);
+    }
+    .brand-name { font-size: 12px; font-weight: 900; letter-spacing: .18em; }
+    .brand-sub { margin-top: 3px; color: rgba(242, 243, 237, .64); font-size: 9px; letter-spacing: .21em; }
+
+    .map-pill, .performance-pill {
+      padding: 9px 13px;
+      color: rgba(245, 247, 240, .87);
+      border: 1px solid var(--edge);
+      border-radius: 999px;
+      background: rgba(12, 17, 15, .5);
+      backdrop-filter: blur(12px);
+      font-size: 10px;
+      font-weight: 750;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+    .map-pill span { color: var(--lime); }
+    #miniMap {
+      position: fixed;
+      inset: auto;
+      z-index: 2;
+      top: 79px;
+      right: 26px;
+      width: 150px;
+      height: 150px;
+      border: 1px solid var(--edge);
+      border-radius: 14px;
+      background: rgba(14, 20, 17, .76);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, .18);
+      backdrop-filter: blur(12px);
+    }
+
+    .hud {
+      position: fixed;
+      z-index: 2;
+      top: 85px;
+      left: 26px;
+      width: 220px;
+      padding: 17px;
+      border: 1px solid var(--edge);
+      border-radius: 15px;
+      background: var(--panel);
+      box-shadow: 0 15px 50px rgba(0, 0, 0, .14);
+      backdrop-filter: blur(17px);
+    }
+
+    .hud-label, .micro-label { color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
+    .speed-line { display: flex; align-items: baseline; gap: 7px; margin-top: 4px; }
+    #speed { font-size: 43px; font-weight: 850; line-height: 1; letter-spacing: -.07em; font-variant-numeric: tabular-nums; }
+    .unit { color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .13em; }
+    .meter { height: 4px; margin-top: 13px; overflow: hidden; border-radius: 8px; background: rgba(255, 255, 255, .13); }
+    #speedFill { width: 0%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--lime), #ffe073, var(--orange)); transition: width .12s linear; }
+    .hud-row { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; }
+    #score { color: var(--lime); font-size: 18px; font-weight: 850; font-variant-numeric: tabular-nums; }
+    #combo { min-height: 14px; margin-top: 9px; color: #ffd180; font-size: 10px; font-weight: 800; letter-spacing: .06em; }
+    #objective { margin-top: 5px; color: var(--lime); font-size: 9px; font-weight: 850; letter-spacing: .13em; }
+    .nitro-label { display: flex; justify-content: space-between; margin-top: 12px; }
+    .nitro-track { height: 3px; margin-top: 6px; overflow: hidden; border-radius: 4px; background: rgba(255, 255, 255, .13); }
+    #nitroFill { width: 100%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #63d4ff, #d2f8ff); }
+    .vehicle-label { display: flex; justify-content: space-between; margin-top: 11px; }
+    .vehicle-state { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 9px; font-weight: 750; }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 9px rgba(197, 250, 85, .7); }
+    .damage-track { height: 3px; margin-top: 6px; overflow: hidden; border-radius: 4px; background: rgba(255, 255, 255, .13); }
+    #damageFill { width: 0%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--lime), #ffbb4a, #ff5247); transition: width .18s linear; }
+
+    .center-title {
+      position: fixed;
+      z-index: 1;
+      top: 8%;
+      left: 50%;
+      width: min(50vw, 440px);
+      transform: translateX(-50%);
+      text-align: center;
+      pointer-events: none;
+      text-shadow: 0 4px 26px rgba(0, 0, 0, .35);
+    }
+    #stuntMessage { font-size: clamp(20px, 3.1vw, 39px); font-weight: 950; letter-spacing: .16em; }
+    #subMessage { margin-top: 6px; color: rgba(247, 248, 242, .75); font-size: 9px; font-weight: 750; letter-spacing: .24em; text-transform: uppercase; }
+
+    .help {
+      position: fixed;
+      z-index: 2;
+      right: 26px;
+      bottom: 24px;
+      width: 255px;
+      padding: 15px 16px 14px;
+      border: 1px solid var(--edge);
+      border-radius: 15px;
+      background: var(--panel);
+      backdrop-filter: blur(17px);
+    }
+    .help-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .help-head strong { font-size: 10px; letter-spacing: .13em; }
+    .help-head span { color: var(--muted); font-size: 9px; }
+    .key-row { display: flex; align-items: center; justify-content: space-between; margin-top: 7px; color: #d3d9d1; font-size: 10px; }
+    .key { min-width: 23px; padding: 4px 6px; color: #f2f3ed; text-align: center; border: 1px solid rgba(255,255,255,.14); border-radius: 5px; background: rgba(255,255,255,.065); font-size: 9px; font-weight: 800; }
+    .key-group { display: flex; gap: 4px; }
+    .help-foot { margin-top: 11px; padding-top: 9px; border-top: 1px solid var(--edge); color: var(--muted); font-size: 9px; line-height: 1.55; }
+
+    .bottom-left { position: fixed; z-index: 2; left: 26px; bottom: 26px; display: flex; gap: 8px; }
+    .chip { padding: 8px 10px; border: 1px solid var(--edge); border-radius: 8px; background: rgba(12,17,15,.5); color: rgba(245,247,240,.83); font-size: 9px; font-weight: 750; letter-spacing: .09em; backdrop-filter: blur(12px); }
+    .chip b { color: var(--lime); }
+
+    #gameOver {
+      position: fixed;
+      z-index: 5;
+      inset: 0;
+      display: none;
+      place-items: center;
+      background: rgba(7, 12, 9, .55);
+      backdrop-filter: blur(7px);
+    }
+    .result-card { width: min(360px, calc(100vw - 32px)); padding: 30px; border: 1px solid var(--edge); border-radius: 20px; background: rgba(15, 21, 17, .94); text-align: center; box-shadow: 0 24px 100px rgba(0,0,0,.45); }
+    .result-card .eyebrow { color: var(--lime); font-size: 9px; font-weight: 900; letter-spacing: .2em; }
+    .result-card h1 { margin: 12px 0 5px; font-size: 32px; letter-spacing: -.04em; }
+    .result-card p { color: var(--muted); font-size: 13px; }
+    .result-card button { margin-top: 12px; padding: 12px 19px; color: #141910; border: 0; border-radius: 9px; background: var(--lime); font: inherit; font-size: 11px; font-weight: 900; cursor: pointer; }
+    .result-card button:hover { background: #d7ffa0; }
+    #pauseBadge { position: fixed; z-index: 4; inset: 0; display: none; place-items: center; color: white; background: rgba(7,12,9,.28); font-size: clamp(24px, 5vw, 50px); font-weight: 900; letter-spacing: .2em; text-shadow: 0 4px 20px #000; }
+
+    @media (max-width: 650px) {
+      .topbar { top: 14px; left: 14px; right: 14px; }
+      .hud { top: 64px; left: 14px; width: 177px; padding: 13px; }
+      #speed { font-size: 35px; }
+      .center-title { top: 12%; width: 45vw; }
+      .help { right: 14px; bottom: 14px; width: min(235px, 58vw); padding: 12px; }
+      .bottom-left { left: 14px; bottom: 14px; display: none; }
+      .map-pill { padding: 8px 9px; font-size: 8px; }
+      #miniMap { top: 63px; right: 14px; width: 112px; height: 112px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" aria-label="Gioco di guida acrobatica tridimensionale"></canvas>
+  <div class="screen-wash"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">S</div>
+      <div><div class="brand-name">STUNTWORKS</div><div class="brand-sub">OPEN WORLD · DRIVER</div></div>
+    </div>
+    <div class="map-pill"><span>●</span> &nbsp;CANYON TEST FACILITY</div>
+  </header>
+
+  <canvas id="miniMap" width="300" height="300" aria-label="Mappa dell'arena"></canvas>
+  <section class="hud" aria-label="Statistiche di guida">
+    <div class="hud-label">Velocità</div>
+    <div class="speed-line"><span id="speed">0</span><span class="unit">KM/H</span></div>
+    <div class="meter"><div id="speedFill"></div></div>
+    <div class="hud-row"><span class="micro-label">Punteggio</span><span id="score">000000</span></div>
+    <div id="combo"></div>
+    <div id="objective">OBIETTIVO  0 / 4 PORTALI</div>
+    <div class="nitro-label"><span class="micro-label">NITRO</span><span id="nitroText" class="micro-label">100%</span></div>
+    <div class="nitro-track"><div id="nitroFill"></div></div>
+    <div class="vehicle-label">
+      <span class="micro-label">DANNI</span>
+      <span class="vehicle-state"><span class="status-dot"></span><span id="damageText">VEICOLO OK</span></span>
+    </div>
+    <div class="damage-track"><div id="damageFill"></div></div>
+  </section>
+
+  <div class="center-title"><div id="stuntMessage">STUNT ARENA</div><div id="subMessage">COSTRUISCI LA TUA LINEA · DOMINA LE RAMPE</div></div>
+
+  <aside class="help">
+    <div class="help-head"><strong>COMANDI</strong><span>FREE DRIVE</span></div>
+    <div class="key-row"><span>Accelera / frena</span><span class="key-group"><span class="key">W</span><span class="key">S</span></span></div>
+    <div class="key-row"><span>Sterza</span><span class="key-group"><span class="key">A</span><span class="key">D</span></span></div>
+    <div class="key-row"><span>Freno a mano / drift</span><span class="key">SPAZIO</span></div>
+    <div class="key-row"><span>Trick in aria</span><span class="key-group"><span class="key">Q</span><span class="key">E</span></span></div>
+    <div class="key-row"><span>Turbo nitro</span><span class="key">SHIFT</span></div>
+    <div class="key-row"><span>Camera · pausa · reset</span><span class="key-group"><span class="key">C</span><span class="key">P</span><span class="key">R</span></span></div>
+    <div class="help-foot">Freno e aderenza si influenzano in curva. In aria Q/E per il barrel roll e W/S per il flip.</div>
+  </aside>
+
+  <div class="bottom-left"><div class="chip">ARENA <b>01</b></div><div class="chip" id="fps">60 FPS</div><div class="chip" id="airStatus">A TERRA</div><div class="chip" id="cameraMode">CHASE CAM</div></div>
+  <div id="pauseBadge">PAUSA</div>
+  <div id="gameOver">
+    <div class="result-card">
+      <div class="eyebrow">RUN TERMINATA</div>
+      <h1>Fuori pista</h1>
+      <p id="finalScore">Punteggio: 0</p>
+      <button id="restartButton" type="button">TORNA IN PISTA · R</button>
+    </div>
+  </div>
+  <script>
+    window.addEventListener('error', (event) => {
+      const message = document.getElementById('subMessage');
+      if (message) message.textContent = `ERRORE GIOCO: ${event.message} ${event.filename} ${event.lineno}:${event.colno} ${event.error?.stack || ''}`;
+    });
+  </script>
+  <script src="game.js"></script>
+</body>
+</html>
