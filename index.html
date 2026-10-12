@@ -4,6 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101912">
+  <meta name="description" content="STUNTWORKS Open Arena: guida, derapa e vola in un'arena 3D di acrobazie.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
   <title>STUNTWORKS — Open Arena</title>
   <style>
     :root {
@@ -271,6 +278,42 @@
     body.touch-landscape .touch-pad { width: clamp(92px, 20vh, 135px); }
     body.touch-landscape .touch-actions { grid-template-columns: repeat(2, clamp(45px, 10vh, 62px)); grid-template-rows: repeat(3, clamp(45px, 10vh, 62px)); gap: 6px; }
 
+    .install-prompt {
+      position: fixed;
+      z-index: 6;
+      right: 22px;
+      bottom: 22px;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      width: min(365px, calc(100vw - 32px));
+      padding: 12px 14px;
+      border: 1px solid rgba(236, 244, 231, .16);
+      border-radius: 13px;
+      background: rgba(14, 20, 17, .94);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, .34);
+      color: var(--white);
+      font-size: 12px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(12px);
+      transition: opacity .2s, transform .2s;
+      backdrop-filter: blur(14px);
+    }
+    .install-prompt.visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
+    .install-prompt-icon { display: grid; place-items: center; width: 35px; height: 35px; flex: none; border-radius: 10px; background: var(--lime); color: #101611; font-size: 18px; font-weight: 950; }
+    .install-prompt-copy { flex: 1; min-width: 0; }
+    .install-prompt-copy strong, .install-prompt-copy small { display: block; }
+    .install-prompt-copy small { margin-top: 3px; color: var(--muted); font-size: 10px; line-height: 1.4; }
+    #installButton { padding: 8px 11px; border: 0; border-radius: 8px; background: var(--lime); color: #101611; font: inherit; font-size: 11px; font-weight: 850; white-space: nowrap; }
+    #installClose { padding: 3px; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 18px; line-height: 1; cursor: pointer; }
+    body.touch-layout .install-prompt { right: 50%; bottom: max(158px, calc(env(safe-area-inset-bottom) + 146px)); transform: translate(50%, 12px); }
+    body.touch-layout .install-prompt.visible { transform: translate(50%, 0); }
+    @media (max-width: 620px) {
+      .install-prompt { right: 50%; bottom: 18px; transform: translate(50%, 12px); }
+      .install-prompt.visible { transform: translate(50%, 0); }
+    }
+
     #gameOver {
       position: fixed;
       z-index: 5;
@@ -369,11 +412,55 @@
       <button id="restartButton" type="button">TORNA IN PISTA · R</button>
     </div>
   </div>
+  <div class="install-prompt" id="installPrompt" role="status" aria-live="polite">
+    <span class="install-prompt-icon" aria-hidden="true">S</span>
+    <span class="install-prompt-copy"><strong>STUNTWORKS sul tuo dispositivo</strong><small id="installHint">Installa il gioco e avvialo come un'app.</small></span>
+    <button id="installButton" type="button">Installa</button>
+    <button id="installClose" type="button" aria-label="Chiudi">×</button>
+  </div>
   <script>
     window.addEventListener('error', (event) => {
       const message = document.getElementById('subMessage');
       if (message) message.textContent = `ERRORE GIOCO: ${event.message} ${event.filename} ${event.lineno}:${event.colno} ${event.error?.stack || ''}`;
     });
+    let deferredInstallPrompt = null;
+    const installPrompt = document.getElementById('installPrompt');
+    const installButton = document.getElementById('installButton');
+    const installHint = document.getElementById('installHint');
+    const isAppleMobile = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+
+    if (isAppleMobile && !isStandalone) {
+      installPrompt.classList.add('visible');
+      installHint.textContent = 'In Safari: Condividi → Aggiungi alla schermata Home.';
+      installButton.textContent = 'Come?';
+      installButton.addEventListener('click', () => {
+        installHint.textContent = 'Apri Condividi e scegli “Aggiungi alla schermata Home”.';
+      });
+    }
+    window.addEventListener('beforeinstallprompt', (event) => {
+      event.preventDefault();
+      deferredInstallPrompt = event;
+      if (!isStandalone) installPrompt.classList.add('visible');
+    });
+    installButton.addEventListener('click', async () => {
+      if (!deferredInstallPrompt) return;
+      await deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+      installPrompt.classList.remove('visible');
+    });
+    document.getElementById('installClose').addEventListener('click', () => installPrompt.classList.remove('visible'));
+    window.addEventListener('appinstalled', () => {
+      deferredInstallPrompt = null;
+      installPrompt.classList.remove('visible');
+    });
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch((error) => console.error('Registrazione modalità offline non riuscita:', error));
+      });
+    }
   </script>
   <script>
 'use strict';

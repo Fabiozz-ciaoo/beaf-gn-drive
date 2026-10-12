@@ -1,0 +1,21 @@
+{
+  "id": "./",
+  "name": "STUNTWORKS — Open Arena",
+  "short_name": "Stuntworks",
+  "description": "Guida, derapa e vola in un'arena 3D di acrobazie.",
+  "lang": "it-IT",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#101912",
+  "theme_color": "#101912",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
